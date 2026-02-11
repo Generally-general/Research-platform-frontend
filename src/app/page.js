@@ -8,6 +8,8 @@ export default function ResearchPortal() {
   const [report, setReport] = useState("");
   const [status, setStatus] = useState("idle");
 
+  const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:8080";
+
   const handleAnalyze = async () => {
     if (!file) return;
     try {
@@ -17,7 +19,7 @@ export default function ResearchPortal() {
       const formData = new FormData();
       formData.append("file", file);
 
-      const uploadRes = await fetch("http://localhost:8080/api/docs/upload", {
+      const uploadRes = await fetch(`${API_BASE}/api/docs/upload`, {
         method: "POST",
         body: formData,
       });
