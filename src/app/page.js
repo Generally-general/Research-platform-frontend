@@ -1,65 +1,103 @@
-import Image from "next/image";
+"use client";
 
-export default function Home() {
+import { useState } from "react";
+import ReactMarkdown from "react-markdown";
+
+export default function ResearchPortal() {
+  const [file, setFile] = useState(null);
+  const [report, setReport] = useState("");
+  const [status, setStatus] = useState("idle");
+
+  const handleAnalyze = async () => {
+    if (!file) return;
+    try {
+      setReport("");
+      setStatus("processing");
+      
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const uploadRes = await fetch("http://localhost:8080/api/docs/upload", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!uploadRes.ok) throw new Error("Upload failed");
+
+      let data = null;
+      while (!data) {
+        const encodedName = encodeURIComponent(file.name);
+        const checkRes = await fetch(`http://localhost:8080/api/research/earning-call-summary?fileName=${encodedName}`);
+        const checkData = await checkRes.json();
+        
+        if (checkData.report) {
+          data = checkData;
+        } else {
+          await new Promise(resolve => setTimeout(resolve, 5000));
+        }
+      }
+
+      setReport(data.report);
+      setStatus("complete");
+    } catch (error) {
+      console.error("Analysis Error:", error);
+      setStatus("idle");
+      alert("Something went wrong. Please check your backend.");
+    }
+  };
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.js file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+    <div className="min-h-screen bg-slate-50 py-12 px-4">
+      <div className="max-w-3xl mx-auto">
+        
+        <div className="text-center mb-10">
+          <h1 className="text-3xl font-bold text-slate-900">Research Analyst Tool</h1>
+          <p className="text-slate-500 mt-2">Upload earnings transcripts for automated insights</p>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
+
+        <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+          
+          <div className="p-8 border-b border-slate-100 bg-white">
+            <input 
+              type="file" 
+              onChange={(e) => setFile(e.target.files[0])} 
+              className="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-slate-100 file:text-slate-700 hover:file:bg-slate-200 cursor-pointer mb-6"
             />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+            
+            <button
+              onClick={handleAnalyze}
+              disabled={status === "processing" || !file}
+              className="w-full py-3 px-4 rounded-md font-semibold text-white bg-blue-600 hover:bg-blue-700 transition-colors disabled:bg-slate-300 flex justify-center items-center gap-2"
+            >
+              {status === "processing" ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  Processing Transcript...
+                </>
+              ) : "Analyze Document"}
+            </button>
+            
+            {status === "processing" && (
+              <p className="text-center text-xs text-blue-500 mt-4 animate-pulse">
+                Running OCR and indexing chunks. This may take a minute.
+              </p>
+            )}
+          </div>
+
+          {report && (
+            <div className="p-8 bg-white border-t-4 border-blue-500">
+              <h2 className="text-lg font-bold text-slate-800 mb-6 flex justify-between items-center">
+                Analysis: {file?.name}
+                <span className="text-xs font-normal text-slate-400">Powered by Llama-3.3</span>
+              </h2>
+              
+              <div className="prose prose-slate max-w-none text-slate-700 leading-relaxed">
+                <ReactMarkdown>{report}</ReactMarkdown>
+              </div>
+            </div>
+          )}
         </div>
-      </main>
+      </div>
     </div>
   );
 }
