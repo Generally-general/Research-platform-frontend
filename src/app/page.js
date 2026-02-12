@@ -29,7 +29,7 @@ export default function ResearchPortal() {
       let data = null;
       while (!data) {
         const encodedName = encodeURIComponent(file.name);
-        const checkRes = await fetch(`http://localhost:8080/api/research/earning-call-summary?fileName=${encodedName}`);
+        const checkRes = await fetch(`${API_BASE}/api/research/earning-call-summary?fileName=${encodedName}`);
         const checkData = await checkRes.json();
         
         if (checkData.report) {
